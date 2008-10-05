@@ -1,11 +1,15 @@
-CFLAGS = -Wall -Wextra
-DEFINES = -DWITH_READLINE
+CC = cc
+CFLAGS = -Wall -Wextra -pedantic
+DEFINES = 
 LDFLAGS = -lreadline
 
 all: el
 
 el: el.c
-	cc -g ${CFLAGS} ${DEFINES} ${LDFLAGS} -o el $<
+	${CC} ${CFLAGS} ${DEFINES} ${LDFLAGS} -o el $<
+
+noreadline: el.c
+	${CC} ${CFLAGS} -DNO_READLINE ${LDFLAGS} -o el $<
 
 clean:
-	-rm foo *.o *.so
+	-rm el
