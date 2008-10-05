@@ -23,7 +23,7 @@
 #define MAX_READ 512
 
 void use(char * name) {
-    printf("%s [-ab] r1 ... rn\n", name);
+    printf("use: %s [-abd] r1 ... rn\n", name);
 }
 
 char* rtrim(char *string) {
@@ -75,7 +75,7 @@ char* parse(char* buff, char** files, int numf) {
     return buff;
 }
 
-char** getfiles(int all, int bin, int idx, int numa, char** args, int* numf) {
+char** getfiles(int all, int bin, int dirs, int idx, int numa, char** args, int* numf) {
     /* return a list of files */
     DIR *d;
     struct dirent *dir;
@@ -83,25 +83,30 @@ char** getfiles(int all, int bin, int idx, int numa, char** args, int* numf) {
     int i, nok;
     regex_t* re = (regex_t*)malloc(sizeof(regex_t) * (numa-idx));
     char** files = (char**)malloc(sizeof(char*) * NUM_FILENAMES);
+
     if( numa - idx ) {
         for( i=idx; i<numa; i++ ) {
             regcomp(&re[i-idx], args[i], REG_EXTENDED);
         }
     }
+
     *numf = 0;
     d = opendir(".");
     if( d ) {
         while( (dir = readdir(d)) != NULL && *numf <= NUM_FILENAMES) {
-            nok = 0;
-            if( (stat(dir->d_name, &statbuf) == -1 ) ) {
-                continue;
-            } else if( S_ISDIR(statbuf.st_mode) ) {
-                continue;
-            } else if( !all && dir->d_name[0] == '.' ) {
-                continue;
-            } else if( !bin && isbin(dir->d_name) ) {
-                continue; 
-            } else if( numa - idx ) {
+
+            if( (stat(dir->d_name, &statbuf) == -1) ||
+                (!all && dir->d_name[0] == '.') ||
+                (!bin && isbin(dir->d_name)) ) continue;
+
+            if( dirs && S_ISDIR(statbuf.st_mode) ) {
+                if( !strcmp(dir->d_name, ".") ||
+                    !strcmp(dir->d_name, "..") ) continue;
+                strcat(dir->d_name, "/");
+            } else if( S_ISDIR(statbuf.st_mode) ) continue;
+
+            if( numa - idx ) {
+                nok = 0;
                 for( i=idx; i<numa; i++ ) {
                     if( regexec(&re[i-idx], dir->d_name, 0, NULL, 0) ) {
                         nok = 1;
@@ -110,6 +115,7 @@ char** getfiles(int all, int bin, int idx, int numa, char** args, int* numf) {
                 }
                 if( nok ) continue;
             }
+
             files[*numf] = (char*)malloc((strlen(dir->d_name)+1) * sizeof(char));
             strcpy(files[*numf], dir->d_name);
             ++(*numf);
@@ -122,7 +128,7 @@ char** getfiles(int all, int bin, int idx, int numa, char** args, int* numf) {
 char* pickfile(char** files, int numf) {
     /* pick a file from a list of 'em */
     int i, j;
-    static char buff[_POSIX_PATH_MAX] = "";
+    static char buff[NAME_MAX+ 1] = "";
     char *prompt;
 
     j = magnitude(numf);
@@ -151,23 +157,26 @@ char* pickfile(char** files, int numf) {
 }
 
 int main(int argc, char *argv[]) {
-    int all, bin, i, numf;
-    char toopen[_POSIX_PATH_MAX] = "";
+    int all, bin, dirs, i, numf;
+    char toopen[NAME_MAX + 1] = "";
     char *editor;
     char** files;
 
     editor = getenv("EDITOR");
     if( editor == NULL ) editor = "vi";
 
-    all = bin = 0;
+    all = bin = dirs = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abh")) != -1) {
+    while ((i = getopt(argc, argv, "abdh")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
                 break;
             case 'b':
                 bin = 1;
+                break;
+            case 'd':
+                dirs = 1;
                 break;
             case 'h':
                 use(argv[0]);
@@ -179,7 +188,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    files = getfiles(all, bin, optind, argc, argv, &numf);
+    files = getfiles(all, bin, dirs, optind, argc, argv, &numf);
 
     if( numf == 1 ) {
         strncpy(toopen, files[0], sizeof(toopen));
