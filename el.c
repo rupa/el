@@ -60,7 +60,7 @@ int itofl(char * tok, char** toks, int *numtok, char ** flst, int numf) {
     char *end_ptr;
     n = strtol(tok, &end_ptr, 10);
     if( n > 0 && n <= numf && '\0' == *end_ptr ) {
-        /* sub from list */
+        /* substitute from list */
         toks[*numtok] = (char *)malloc(strlen(flst[n - 1]) + 1 * sizeof(char));
         strcpy(toks[*numtok], flst[n - 1]);
     } else {
@@ -177,12 +177,13 @@ char** getfiles(int all, int bin, int dirs, int idx, int numa, char** args, int*
                 if( nok ) continue;
             }
 
-            files[*numf] = (char*)malloc((strlen(dir->d_name)+1) * sizeof(char));
+            files[*numf] = (char*)malloc(strlen(dir->d_name) + 1 * sizeof(char));
             strcpy(files[*numf], dir->d_name);
             ++(*numf);
         }
         closedir(d);
     }
+    free(re);
     return files;
 }
 
@@ -193,7 +194,7 @@ int pickfile(char** toks, int * numtok, char** files, int numf, char* editor) {
     char *prompt;
 
     j = magnitude(numf);
-    prompt = malloc((j+2) * sizeof(char));
+    prompt = malloc((j+3) * sizeof(char));
     sprintf(prompt, "%*s> ", j, "");
 
     for( i=0; i<numf; i++ ) {  
@@ -213,9 +214,10 @@ int pickfile(char** toks, int * numtok, char** files, int numf, char* editor) {
     #endif
 
     if( !strcmp(buff, "") ) return 1;
-       
+
     if( parse(buff, toks, numtok, files, numf, editor) ) return 1; 
    
+    free(prompt);
     return 0;
 }
 
@@ -273,5 +275,4 @@ int main(int argc, char *argv[]) {
     } else return execvp(toks[0], toks);
 
     return 0;
-
 }
