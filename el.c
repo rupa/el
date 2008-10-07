@@ -23,16 +23,7 @@
 #define MAX_READ 512
 
 void use(char * name) {
-    printf("use: %s [-abd] r1 ... rn\n", name);
-}
-
-char* rtrim(char *string) {
-    char *ws;
-    while( (ws = strrchr(string,' ')) ) {
-        if( ws-string != (int)(strlen(string)-1) ) break;
-        string[ws-string] = '\0';
-    }
-    return string;
+    printf("use: %s [-abdt] r1 ... rn\n", name);
 }
 
 int magnitude(int num) {
@@ -49,7 +40,7 @@ int isbin(char *filename) {
     /* implement perl's -T test */
     int ch, tot, hi, bin;
     FILE *file;
-    file = fopen( filename, "r" );
+    file = fopen(filename, "r");
     if( file == 0 ) return -1;
     tot = hi = bin = 0;
     while( (ch = fgetc(file) ) != EOF && (++tot < MAX_READ) ) {
@@ -64,15 +55,85 @@ int isbin(char *filename) {
     return bin;
 }  
 
-char* parse(char* buff, char** files, int numf) {
-    /* munge up our input */
+int itofl(char * tok, char** toks, int *numtok, char ** flst, int numf) {
     long n;
     char *end_ptr;
-    n = strtol(buff, &end_ptr, 10);
+    n = strtol(tok, &end_ptr, 10);
     if( n > 0 && n <= numf && '\0' == *end_ptr ) {
-        strncpy(buff, files[n - 1], strlen(files[n - 1]));
+        /* sub from list */
+        toks[*numtok] = (char *)malloc(strlen(flst[n - 1]) + 1 * sizeof(char));
+        strcpy(toks[*numtok], flst[n - 1]);
+    } else {
+        /* leave alone */
+        toks[*numtok] = (char *)malloc(strlen(tok)+1 * sizeof(char));
+        strcpy(toks[*numtok], tok);
     } 
-    return buff;
+    (*numtok)++;
+    return 0;
+}
+
+int parse(char* str, char** toks, int *numtok, char** flst, int numf, char* editor) {
+    /* split into tokens, account for ' and ", deal with special ! commands,
+     * replace token with flst[token] if it exists, return a list of strings
+     * suitable for exec.
+     */
+    int i, j, quoted;
+    char *result = NULL;
+    char** tmp = (char**)malloc(sizeof(char*) * sizeof(str));
+     
+    i = j = *numtok = 0;
+    quoted = !strncmp(str,"\"", 1);
+
+    result = strtok(str, "'\"");
+    while( result != NULL ) {
+        tmp[i] = (char *)malloc(strlen(result)+1 * sizeof(char));
+        strcpy(tmp[i], result);
+        result = strtok(NULL, "'\"");
+        i++;
+    }
+    for( j=0; j<i; j++ ) { 
+        if( quoted ) {
+            if( !(*numtok) ) {
+                /* insert default: editor */
+                toks[*numtok] = (char *)malloc(sizeof(editor) * sizeof(char));
+                strcpy(toks[*numtok], editor);
+                (*numtok)++;
+            }
+            toks[*numtok] = (char *)malloc(strlen(tmp[j])+1 * sizeof(char));
+            strcpy(toks[*numtok], tmp[j]);
+            (*numtok)++;
+            quoted = 0;
+        } else {
+            result = strtok(tmp[j], " ");
+            if( !(*numtok) ) {
+                if( !strcmp(result, "!" ) ) {
+                    result = strtok(NULL, " ");
+                    if( result == NULL ) {
+                        free(tmp); 
+                        return 1;
+                    }
+                    itofl(result, toks, numtok, flst, numf);
+                } else if( !strncmp(result, "!", 1) ) {
+                    itofl(result+1, toks, numtok, flst, numf);
+                } else {
+                    /* insert default: editor */
+                    toks[*numtok] = (char *)malloc(sizeof(editor) * sizeof(char));
+                    strcpy(toks[*numtok], editor);
+                    (*numtok)++;
+                    itofl(result, toks, numtok, flst, numf);
+                }
+                result = strtok(NULL, " ");
+            }
+            while( result != NULL ) {
+                itofl(result, toks, numtok, flst, numf);
+                result = strtok(NULL, " ");
+            }
+            quoted = 1;
+        }
+    }
+    toks[(*numtok)++] = NULL;
+    free(tmp); 
+    return 0;
 }
 
 char** getfiles(int all, int bin, int dirs, int idx, int numa, char** args, int* numf) {
@@ -125,7 +186,7 @@ char** getfiles(int all, int bin, int dirs, int idx, int numa, char** args, int*
     return files;
 }
 
-char* pickfile(char** files, int numf) {
+int pickfile(char** toks, int * numtok, char** files, int numf, char* editor) {
     /* pick a file from a list of 'em */
     int i, j;
     static char buff[NAME_MAX+ 1] = "";
@@ -151,23 +212,25 @@ char* pickfile(char** files, int numf) {
         buff[sizeof(buff) - 1] = '\0';
     #endif
 
-    if( !strcmp(buff, "") ) return "";
+    if( !strcmp(buff, "") ) return 1;
        
-    return parse(rtrim(buff), files, numf);
+    if( parse(buff, toks, numtok, files, numf, editor) ) return 1; 
+   
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
-    int all, bin, dirs, i, numf;
-    char toopen[NAME_MAX + 1] = "";
-    char *editor;
+    int all, bin, dirs, test, i, numf, numtok;
     char** files;
+    char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
+    char *editor;
 
     editor = getenv("EDITOR");
     if( editor == NULL ) editor = "vi";
 
-    all = bin = dirs = 0;
+    all = bin = dirs = test = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abdh")) != -1) {
+    while ((i = getopt(argc, argv, "abdth")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
@@ -181,6 +244,9 @@ int main(int argc, char *argv[]) {
             case 'h':
                 use(argv[0]);
                 return 0;
+            case 't':
+                test = 1;
+                break;
             case '?':
                 break;
             default:
@@ -191,13 +257,21 @@ int main(int argc, char *argv[]) {
     files = getfiles(all, bin, dirs, optind, argc, argv, &numf);
 
     if( numf == 1 ) {
-        strncpy(toopen, files[0], sizeof(toopen));
-    } else {
-        strncpy(toopen, pickfile(files, numf), sizeof(toopen));
-    }
+        toks[numtok] = (char *)malloc(sizeof(editor) * sizeof(char));
+        strcpy(toks[numtok++], editor);
+        toks[numtok] = (char *)malloc(sizeof(files[0]) * sizeof(char));
+        strcpy(toks[numtok++], files[0]);
+        toks[numtok++] = NULL;
+    } else if( pickfile(toks, &numtok, files, numf, editor) ) return 0;
 
-    if( !strcmp(toopen, "") ) {
-        return 0;
-    }
-    return execlp(editor, editor, toopen, NULL);
+    if( test ) {
+        printf("%s ", "[");
+        for( i=0; i<numtok; i++ ) {
+            printf("\"%s\", ", toks[i]);
+        }
+        printf("%s", "]\n");
+    } else return execvp(toks[0], toks);
+
+    return 0;
+
 }
