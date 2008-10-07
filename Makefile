@@ -9,7 +9,7 @@ el: el.c
 	${CC} ${CFLAGS} ${DEFINES} ${LDFLAGS} -o el $<
 
 noreadline: el.c
-	${CC} ${CFLAGS} -DNO_READLINE ${LDFLAGS} -o el $<
+	${CC} ${CFLAGS} -DNO_READLINE -o el $<
 
 clean:
 	-rm el
