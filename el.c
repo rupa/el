@@ -259,9 +259,10 @@ int main(int argc, char *argv[]) {
     files = getfiles(all, bin, dirs, optind, argc, argv, &numf);
 
     if( numf == 1 ) {
-        toks[numtok] = (char *)malloc(sizeof(editor) * sizeof(char));
+        numtok = 0;
+        toks[numtok] = (char *)malloc(strlen(editor) + 1 * sizeof(char));
         strcpy(toks[numtok++], editor);
-        toks[numtok] = (char *)malloc(sizeof(files[0]) * sizeof(char));
+        toks[numtok] = (char *)malloc(strlen(files[0]) + 1 * sizeof(char));
         strcpy(toks[numtok++], files[0]);
         toks[numtok++] = NULL;
     } else if( pickfile(toks, &numtok, files, numf, editor) ) return 0;
