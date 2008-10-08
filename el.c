@@ -195,12 +195,12 @@ char** getfiles(int all, int bin, int dirs, int v, regex_t* re, int nr, int* nf)
                 strcat(dir->d_name, "/");
             } else if( S_ISDIR(statbuf.st_mode) ) continue;
             if( nr ) {
-                nok = v == 1;
+                nok = 0;
                 for( i=0; i<nr; i++ ) {
-                    if( regexec(&re[i], dir->d_name, 0, NULL, 0) ) {
-                        nok = !v;
+                    if( v ^ regexec(&re[i], dir->d_name, 0, NULL, 0) ) {
+                        nok = 1;
                         break;
-                    } 
+                    }
                 }
                 if( nok ) continue;
             }
