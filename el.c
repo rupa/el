@@ -23,7 +23,11 @@
 #define MAX_READ 512
 
 void use(char * name) {
-    printf("use: %s [-abdt] r1 ... rn\n", name);
+    printf("use: %s [-abdhtv] r1 ... rn\n", name);
+}
+
+static int compare(const void *a, const void *b) { 
+ return strcmp(*(char **)a, *(char **)b);
 }
 
 int magnitude(int num) {
@@ -50,7 +54,7 @@ int isbin(char *filename) {
         }
         if( (ch < 32 || ch > 127) && (ch < 8 || ch > 10) && ch != 13 ) hi++;
     }
-    if( bin != 1 && (hi / MAX_READ) > .30 ) bin = 1;
+    if( tot && bin != 1 && (hi / tot) > .30 ) bin = 1;
     fclose(file);
     return bin;
 }  
@@ -136,57 +140,6 @@ int parse(char* str, char** toks, int *numtok, char** flst, int numf, char* edit
     return 0;
 }
 
-char** getfiles(int all, int bin, int dirs, int idx, int numa, char** args, int* numf) {
-    /* return a list of files */
-    DIR *d;
-    struct dirent *dir;
-    struct stat statbuf;
-    int i, nok;
-    regex_t* re = (regex_t*)malloc(sizeof(regex_t) * (numa-idx));
-    char** files = (char**)malloc(sizeof(char*) * NUM_FILENAMES);
-
-    if( numa - idx ) {
-        for( i=idx; i<numa; i++ ) {
-            regcomp(&re[i-idx], args[i], REG_EXTENDED);
-        }
-    }
-
-    *numf = 0;
-    d = opendir(".");
-    if( d ) {
-        while( (dir = readdir(d)) != NULL && *numf <= NUM_FILENAMES) {
-
-            if( (stat(dir->d_name, &statbuf) == -1) ||
-                (!all && dir->d_name[0] == '.') ||
-                (!bin && isbin(dir->d_name)) ) continue;
-
-            if( dirs && S_ISDIR(statbuf.st_mode) ) {
-                if( !strcmp(dir->d_name, ".") ||
-                    !strcmp(dir->d_name, "..") ) continue;
-                strcat(dir->d_name, "/");
-            } else if( S_ISDIR(statbuf.st_mode) ) continue;
-
-            if( numa - idx ) {
-                nok = 0;
-                for( i=idx; i<numa; i++ ) {
-                    if( regexec(&re[i-idx], dir->d_name, 0, NULL, 0) ) {
-                        nok = 1;
-                        break;
-                    } 
-                }
-                if( nok ) continue;
-            }
-
-            files[*numf] = (char*)malloc(strlen(dir->d_name) + 1 * sizeof(char));
-            strcpy(files[*numf], dir->d_name);
-            ++(*numf);
-        }
-        closedir(d);
-    }
-    free(re);
-    return files;
-}
-
 int pickfile(char** toks, int * numtok, char** files, int numf, char* editor) {
     /* pick a file from a list of 'em */
     int i, j;
@@ -195,7 +148,7 @@ int pickfile(char** toks, int * numtok, char** files, int numf, char* editor) {
 
     j = magnitude(numf);
     prompt = malloc((j+3) * sizeof(char));
-    sprintf(prompt, "%*s> ", j, "");
+    sprintf(prompt, "%*s: ", j, "");
 
     for( i=0; i<numf; i++ ) {  
         printf("%*d: %s\n", j, i + 1, files[i]);
@@ -221,18 +174,69 @@ int pickfile(char** toks, int * numtok, char** files, int numf, char* editor) {
     return 0;
 }
 
+char** getfiles(int all, int bin, int dirs, int icas, int inv, int idx, int numa, char** args, int* numf) {
+    /* return a list of files */
+    DIR *d;
+    struct dirent *dir;
+    struct stat statbuf;
+    int i, nok;
+    regex_t* re = (regex_t*)malloc(sizeof(regex_t) * (numa-idx));
+    char** files = (char**)malloc(sizeof(char*) * NUM_FILENAMES);
+
+    if( numa - idx ) {
+        int flags = REG_EXTENDED | REG_NOSUB;
+        if( icas ) flags = flags | REG_ICASE;
+        for( i=idx; i<numa; i++ ) regcomp(&re[i-idx], args[i], flags);
+    }
+
+    *numf = 0;
+    d = opendir(".");
+    if( d ) {
+        while( (dir = readdir(d)) != NULL && *numf <= NUM_FILENAMES) {
+
+            if( stat(dir->d_name, &statbuf) == -1 ) continue; 
+            if( !strcmp(dir->d_name, ".") ) continue;
+            if( !strcmp(dir->d_name, "..") ) continue;
+            if( !all && dir->d_name[0] == '.' ) continue;
+            if( dirs && S_ISDIR(statbuf.st_mode) ) {
+                strcat(dir->d_name, "/");
+            } else if( S_ISDIR(statbuf.st_mode) ) continue;
+
+            if( numa - idx ) {
+                nok = inv == 1;
+                for( i=idx; i<numa; i++ ) {
+                    if( regexec(&re[i-idx], dir->d_name, 0, NULL, 0) ) {
+                        nok = !inv;
+                        break;
+                    } 
+                }
+                if( nok ) continue;
+            }
+            if( !bin && isbin(dir->d_name) ) continue;
+
+            files[*numf] = (char*)malloc(strlen(dir->d_name) + 1 * sizeof(char));
+            strcpy(files[*numf], dir->d_name);
+            ++(*numf);
+        }
+        closedir(d);
+    }
+    free(re);
+    return files;
+}
+
 int main(int argc, char *argv[]) {
-    int all, bin, dirs, test, i, numf, numtok;
+    int all, bin, dirs, icas, inv, test, i, numf, numtok;
     char** files;
+    size_t files_len;
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
     char *editor;
 
     editor = getenv("EDITOR");
     if( editor == NULL ) editor = "vi";
 
-    all = bin = dirs = test = 0;
+    all = bin = dirs = icas = inv = test = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abdth")) != -1) {
+    while ((i = getopt(argc, argv, "abdhitv")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
@@ -246,8 +250,14 @@ int main(int argc, char *argv[]) {
             case 'h':
                 use(argv[0]);
                 return 0;
+            case 'i':
+                icas = 1;
+                break;
             case 't':
                 test = 1;
+                break;
+            case 'v':
+                inv = 1;
                 break;
             case '?':
                 break;
@@ -256,7 +266,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    files = getfiles(all, bin, dirs, optind, argc, argv, &numf);
+    files = getfiles(all, bin, dirs, icas, inv, optind, argc, argv, &numf);
+    files_len = sizeof(files) / sizeof(char *);
+
+    qsort(files, numf, sizeof(char *), compare);
 
     if( numf == 1 ) {
         numtok = 0;
