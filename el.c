@@ -22,6 +22,15 @@
  * is !, the entire line is passed to the shell as a command. List numbers are
  * always replaced by the corresponding file name before being passed to the
  * shell.
+ *
+ * Example:
+ *     $ el
+ *     1: Makefile
+ *     2: README
+ *     3: el.c
+ *      : !echo 2 3
+ *     el.c shell.c
+ *     $
  */
 
 #include <stdio.h>
@@ -41,7 +50,16 @@
 #define MAX_READ 512
 
 void use(char * name) {
-    printf("use: %s [-abdhiptv] [regex1 regex2 ... regexn]\n", name);
+    printf("\
+use: %s [-abdhiptv] [regex1 regex2 ... regexn]     \n\
+        -a show hidden files                       \n\
+        -b show binary files                       \n\
+        -d show directories                        \n\
+        -h print this help message                 \n\
+        -i matching is case insensitive            \n\
+        -p open previous file (vi[m] only)         \n\
+        -t test - print cmd that would be run      \n\
+        -v only show files that don't match regexes\n", name);
 }
 
 int magnitude(int num) {
@@ -60,7 +78,8 @@ static int compare(const void *a, const void *b) {
 
 int isbin(char *filename) {
     /* implement perl's -T test */
-    int ch, tot, hi, bin;
+    int ch, bin;
+    float hi, tot;
     FILE *file;
     file = fopen(filename, "r");
     if( file == 0 ) return -1;
@@ -95,7 +114,7 @@ int itofl(char * tok, char** toks, int *nt, char ** flst, int nf) {
 }
 
 int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
-    /* split into tokens, account for ' and ", deal with special ! commands,
+    /* split into tokens, account for ", deal with special ! commands,
      * replace token with flst[token] if it exists, return a list of strings
      * suitable for exec.
      */
@@ -109,22 +128,22 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
 
     result = strtok(str, "\"");
     tmp2 = (char *)malloc(strlen(str) + 1 * sizeof(char));
-    strcpy(tmp2, "");
+    /* deal with double quotes */
     while( result != NULL ) {
+        strcpy(tmp2, "");
         while( result != NULL && result[strlen(result) - 1] == '\\' ) {
+            /* which might be escaped doublequote */
             result[strlen(result) - 1] = '"';
             strcat(tmp2, result);
             result = strtok(NULL, "\"");
         }
-        printf("tmp %s%s\n", tmp2, result);
-        j = strlen(tmp2); 
-        if( result != NULL ) j = j + strlen(result);
-        tmp[i] = (char *)malloc((j + 1) * sizeof(char));
+        tmp[i] = (char *)malloc((strlen(tmp2) + (result == NULL? 0 : strlen(result)) + 1) * sizeof(char));
         strcpy(tmp[i], tmp2);
         if( result != NULL ) strcat(tmp[i], result);
         result = strtok(NULL, "\"");
         i++;
     }
+    free(tmp2);
     for( j=0; j<i; j++ ) { 
         if( quoted ) {
             if( !(*nt) ) {
@@ -138,10 +157,10 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
             (*nt)++;
             quoted = 0;
         } else {
-            result = strtok(tmp[j], " ");
+            result = strtok(tmp[j], " \t");
             if( !(*nt) ) {
                 if( !strcmp(result, "!" ) ) {
-                    result = strtok(NULL, " ");
+                    result = strtok(NULL, " \t");
                     if( result == NULL ) {
                         free(tmp); 
                         return 1;
@@ -156,11 +175,11 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
                     (*nt)++;
                     itofl(result, toks, nt, flst, nf);
                 }
-                result = strtok(NULL, " ");
+                result = strtok(NULL, " \t");
             }
             while( result != NULL ) {
                 itofl(result, toks, nt, flst, nf);
-                result = strtok(NULL, " ");
+                result = strtok(NULL, " \t");
             }
             quoted = 1;
         }
