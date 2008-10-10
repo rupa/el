@@ -1,9 +1,27 @@
 /*
  * el: fuzzy wrapper for $EDITOR
  *
- * cc -Wall -lreadline el.c
- * cc -Wall -DNO_READLINE el.c
+ * compile:
+ *     cc -Wall -lreadline el.c
+ *     cc -Wall -DNO_READLINE el.c
  *
+ * use:
+ *     el [-abdhiptv] [regex1 regex2 ... regexn]
+ *         -a show hidden files
+ *         -b show binary files
+ *         -d show directories
+ *         -h print this help message
+ *         -i matching is case insensitive
+ *         -p open previous file (vi[m] only)
+ *         -t test - print cmd that would be run
+ *         -v only show files that don't match regexes
+ *
+ * If only one file matches, opens $EDITOR on that file, else displays a list
+ * and shows a prompt. Enter a list number to open that file. Other input is 
+ * considered arguments to $EDITOR. If the first char entered at the prompt
+ * is !, the entire line is passed to the shell as a command. List numbers are
+ * always replaced by the corresponding file name before being passed to the
+ * shell.
  */
 
 #include <stdio.h>
@@ -23,7 +41,7 @@
 #define MAX_READ 512
 
 void use(char * name) {
-    printf("use: %s [-abdhitv] r1 ... rn\n", name);
+    printf("use: %s [-abdhiptv] [regex1 regex2 ... regexn]\n", name);
 }
 
 int magnitude(int num) {
@@ -84,15 +102,27 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
     int i, j, quoted;
     char *result = NULL;
     char** tmp = (char**)malloc(sizeof(char*) * sizeof(str));
+    char *tmp2;
      
     i = j = *nt = 0;
     quoted = !strncmp(str,"\"", 1);
 
-    result = strtok(str, "'\"");
+    result = strtok(str, "\"");
+    tmp2 = (char *)malloc(strlen(str) + 1 * sizeof(char));
+    strcpy(tmp2, "");
     while( result != NULL ) {
-        tmp[i] = (char *)malloc(strlen(result)+1 * sizeof(char));
-        strcpy(tmp[i], result);
-        result = strtok(NULL, "'\"");
+        while( result != NULL && result[strlen(result) - 1] == '\\' ) {
+            result[strlen(result) - 1] = '"';
+            strcat(tmp2, result);
+            result = strtok(NULL, "\"");
+        }
+        printf("tmp %s%s\n", tmp2, result);
+        j = strlen(tmp2); 
+        if( result != NULL ) j = j + strlen(result);
+        tmp[i] = (char *)malloc((j + 1) * sizeof(char));
+        strcpy(tmp[i], tmp2);
+        if( result != NULL ) strcat(tmp[i], result);
+        result = strtok(NULL, "\"");
         i++;
     }
     for( j=0; j<i; j++ ) { 
@@ -216,7 +246,7 @@ char** getfiles(int all, int bin, int dirs, int v, regex_t* re, int nr, int* nf)
 }
 
 int main(int argc, char *argv[]) {
-    int all, bin, dirs, icas, inv, test, i, nf, nt;
+    int all, bin, dirs, icas, inv, prev, test, i, nf, nt;
     char *cmd;
     char** files;
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
@@ -225,9 +255,9 @@ int main(int argc, char *argv[]) {
     cmd = getenv("EDITOR");
     if( cmd == NULL ) cmd = "vi";
 
-    all = bin = dirs = icas = inv = test = 0;
+    all = bin = dirs = icas = inv = prev = test = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abdhitv")) != -1) {
+    while ((i = getopt(argc, argv, "abdhiptv")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
@@ -244,6 +274,10 @@ int main(int argc, char *argv[]) {
             case 'i':
                 icas = 1;
                 break;
+            case 'p':
+                if( strncmp(cmd, "vi", 2) ) break;
+                prev = 1;
+                break;
             case 't':
                 test = 1;
                 break;
@@ -255,6 +289,13 @@ int main(int argc, char *argv[]) {
             default:
                 abort();
         }
+    }
+
+    if( prev ) {
+        if( test ) {
+           printf("[ \"%s\", \"-c\", \"normal '0\", \"(null)\", ]\n", cmd);
+        } else execlp(cmd, cmd, "-c", "normal '0", NULL);
+        return 0;
     }
 
     re  = (regex_t*)malloc((argc - optind) * sizeof(regex_t));
