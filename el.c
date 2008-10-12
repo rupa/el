@@ -2,7 +2,7 @@
  * el: fuzzy wrapper for $EDITOR
  *
  * compile:
- *     cc -Wall -lreadline el.c
+ *     cc -Wall -lreadline -lncurses el.c
  *     cc -Wall -DNO_READLINE el.c
  *
  * use:
