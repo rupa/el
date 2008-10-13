@@ -200,7 +200,7 @@ int listfiles(char** files, int nf, int fmax, int pad ) {
     ioctl(1, TIOCGWINSZ, &ws);
 
     scol = fmax + pad;
-    ncol = ws.ws_col / scol;
+    ncol = (ws.ws_col / scol) ? (ws.ws_col / scol) : 1;
     nrow = (nf / ncol) + ((nf % ncol) ? 1 : 0); 
 
     /* one per line
@@ -223,7 +223,7 @@ int listfiles(char** files, int nf, int fmax, int pad ) {
     for( i=0; i<nrow; i++ ) {
         for( j=0; j<ncol; j++ ) {
             if(j*nrow+i >= nf ) break;
-            printf("%*d: %-*s  ", pad-4, j*nrow+i+1, fmax, files[j*nrow+i]);
+            printf("%*d: %-*s  ", pad-4, j*nrow+i+1, ((j<ncol-1) ? fmax : 0), files[j*nrow+i]);
         }
         printf("\n");
     }
