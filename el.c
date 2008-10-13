@@ -199,7 +199,7 @@ int listfiles(char** files, int nf, int fmax, int pad ) {
     struct winsize ws;
     ioctl(1, TIOCGWINSZ, &ws);
 
-    scol = fmax + pad;
+    scol = fmax + pad + 4;
     ncol = (ws.ws_col / scol) ? (ws.ws_col / scol) : 1;
     nrow = (nf / ncol) + ((nf % ncol) ? 1 : 0); 
 
@@ -223,7 +223,7 @@ int listfiles(char** files, int nf, int fmax, int pad ) {
     for( i=0; i<nrow; i++ ) {
         for( j=0; j<ncol; j++ ) {
             if(j*nrow+i >= nf ) break;
-            printf("%*d: %-*s  ", pad-4, j*nrow+i+1, ((j<ncol-1) ? fmax : 0), files[j*nrow+i]);
+            printf("%*d: %-*s", pad, j*nrow+i+1, ((j<ncol-1) ? fmax+2 : 0), files[j*nrow+i]);
         }
         printf("\n");
     }
@@ -245,7 +245,7 @@ int pickfile(char** toks, int * nt, char** files, int nf, int fmax, char* cmd) {
     prompt = malloc((i+3) * sizeof(char));
     sprintf(prompt, "%*s: ", i, "");
 
-    listfiles(files, nf, fmax, i + 4);
+    listfiles(files, nf, fmax, i);
 
     #ifdef NO_READLINE
         printf("%s", prompt);
