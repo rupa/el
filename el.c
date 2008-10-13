@@ -62,6 +62,14 @@ use: %s [-abdhiptv] [regex1 regex2 ... regexn]     \n\
         -v only show files that don't match regexes\n", name);
 }
 
+int lastedited(char *cmd, int test ) {
+    /* vi only */
+    if( test ) {
+       printf("[ \"%s\", \"-c\", \"normal '0\", \"(null)\", ]\n", cmd);
+    } else execlp(cmd, cmd, "-c", "normal '0", NULL);
+    return 0;
+}
+
 int magnitude(int num) {
     /* strlen(int) */
     int mag;
@@ -300,8 +308,9 @@ char** getfiles(int all, int bin, int dirs, int v, regex_t* re, int nr, int* nf,
 }
 
 int main(int argc, char *argv[]) {
-    int all, bin, dirs, fmax, icas, inv, test, i, nf, nr, nt;
+    int all, bin, dirs, fmax, icas, inv, test, i, nf, nr, nt, r;
     char *cmd;
+    char err[NAME_MAX];
     char** files;
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
     regex_t* re;
@@ -347,19 +356,19 @@ int main(int argc, char *argv[]) {
         int flags = REG_EXTENDED | REG_NOSUB;
         if( icas ) flags = flags | REG_ICASE;
         icas = 0;
+        r = 0;
         for( i=optind; i<argc; i++ ) {
-
             if( !strcmp(argv[i], "/") && !strncmp(cmd, "vi", 2) ) {
                 /* reopen last file */
-                if( test ) {
-                   printf("[ \"%s\", \"-c\", \"normal '0\", \"(null)\", ]\n", cmd);
-                } else execlp(cmd, cmd, "-c", "normal '0", NULL);
+                lastedited(cmd, test);
                 return 0;
-
             } else if( argv[i][0] == '/' ) {
                 /* set numbered file */
-                if( atoi(argv[i]+1) > 0 ) icas = atoi(argv[i]+1);
-            } else if( !regcomp(&re[nr], argv[i], flags) ) nr++;
+                if( atoi(argv[i]+1) ) icas = atoi(argv[i]+1);
+            } else if( (r = regcomp(&re[nr], argv[i], flags)) ) {
+                regerror(r, &re[nr], err, 80 );
+                printf("%s\n", err);
+            } else nr++;
         }
     }
 
@@ -383,11 +392,9 @@ int main(int argc, char *argv[]) {
     } else if( pickfile(toks, &nt, files, nf, fmax, cmd) ) return 0;
 
     if( test ) {
-        printf("%s ", "[");
-        for( i=0; i<nt; i++ ) {
-            printf("\"%s\", ", toks[i]);
-        }
-        printf("%s", "]\n");
+        printf("[ ");
+        for( i=0; i<nt; i++ ) printf("\"%s\", ", toks[i]);
+        printf("]\n");
     } else return execvp(toks[0], toks);
 
     return 0;
