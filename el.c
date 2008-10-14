@@ -132,6 +132,7 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
     quoted = !strncmp(str,"\"", 1);
 
     result = strtok(str, "\"");
+    if( result == NULL ) return 1;
     tmp2 = (char *)malloc(strlen(str) + 1 * sizeof(char));
     /* deal with double quotes */
     while( result != NULL ) {
