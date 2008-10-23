@@ -52,14 +52,15 @@
 
 void use(char * name) {
     printf("\
-use: %s [-abdhiptv] [regex1 regex2 ... regexn]     \n\
+use: %s [-abdhiptvV] [regex1 regex2 ... regexn]     \n\
         -a show hidden files                       \n\
         -b show binary files                       \n\
         -d show directories                        \n\
         -h print this help message                 \n\
         -i matching is case insensitive            \n\
         -t test - print cmd that would be run      \n\
-        -v only show files that don't match regexes\n", name);
+        -v only show files that don't match regexes\n\
+        -V some info\n", name);
 }
 
 int lastedited(char *cmd, int test ) {
@@ -96,7 +97,7 @@ int isbin(char *filename) {
         }
         if( (ch < 32 || ch > 127) && (ch < 8 || ch > 10) && ch != 13 ) hi++;
     }
-    if( tot && bin != 1 && (hi / tot) > .30 ) bin = 1;
+    if( tot && !bin && (hi / tot) > .30 ) bin = 1;
     fclose(file);
     return bin;
 }  
@@ -204,29 +205,27 @@ int listfiles(char** files, int nf, int fmax, int pad ) {
     ncol = (ws.ws_col / scol) ? (ws.ws_col / scol) : 1;
     nrow = (nf / ncol) + ((nf % ncol) ? 1 : 0); 
 
-    /* one per line
-     * 
-     * for( i=0; i<nf; i++ ) printf("%*d: %s\n", pad-4, i+1, files[i]);
-     */ 
-
-    /* hsort
-     * 
-     * for( i=0; i<nrow; i++ ) {
-     *     for( j=0; j<ncol; j++ ) {
-     *         if(i*ncol+j >= nf ) break;
-     *         printf("%*d: %-*s  ", pad-4, i*ncol+j+1, scol-4, files[i*ncol+j]);
-     *     }
-     *     printf("\n");
-     * }
-     */
-
-    /* vsort */
-    for( i=0; i<nrow; i++ ) {
-        for( j=0; j<ncol; j++ ) {
-            if(j*nrow+i >= nf ) break;
-            printf("%*d: %-*s", pad, j*nrow+i+1, ((j<ncol-1) ? fmax+2 : 0), files[j*nrow+i]);
+    if( srt == 0 ) {
+        /* vsort */
+        for( i=0; i<nrow; i++ ) {
+            for( j=0; j<ncol; j++ ) {
+                if(j*nrow+i >= nf ) break;
+                printf("%*d: %-*s", pad, j*nrow+i+1, ((j<ncol-1) ? fmax+2 : 0), files[j*nrow+i]);
+            }
+            printf("\n");
         }
-        printf("\n");
+    } else if( srt == 1 ) {
+        /* hsort */
+        for( i=0; i<nrow; i++ ) {
+            for( j=0; j<ncol; j++ ) {
+                if(i*ncol+j >= nf ) break;
+                printf("%*d: %-*s", pad, i*ncol+j+1, ((j<ncol-1) ? fmax+2 : 0), files[i*ncol+j]);
+            }
+            printf("\n");
+        }
+    } else {
+        /* one per line */
+        for( i=0; i<nf; i++ ) printf("%*d: %s\n", pad, i+1, files[i]);
     }
 
     if( nf >= NUM_FILENAMES ) {
@@ -309,19 +308,18 @@ char** getfiles(int all, int bin, int dirs, int v, regex_t* re, int nr, int* nf,
 }
 
 int main(int argc, char *argv[]) {
-    int all, bin, dirs, fmax, icas, inv, test, i, nf, nr, nt, r;
+    int all, bin, dirs, fmax, icas, inv, srt, test, i, nr, nt, r;
     char *cmd;
     char err[NAME_MAX];
-    char** files;
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
     regex_t* re;
 
     cmd = getenv("EDITOR");
     if( cmd == NULL ) cmd = "vi";
 
-    all = bin = dirs = icas = inv = test = 0;
+    all = bin = dirs = icas = inv = srt = test = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abdhitv")) != -1) {
+    while ((i = getopt(argc, argv, "abdhitvVx")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
@@ -343,6 +341,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 'v':
                 inv = 1;
+                break;
+            case 'V':
+                printf("%s %s %s\n", __FILE__, __DATE__, __TIME__);
+                return 0;
+            case 'x':
+                srt = 1;
                 break;
             case '?':
                 break;
