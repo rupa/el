@@ -50,6 +50,9 @@
 #define NUM_FILENAMES 1000
 #define MAX_READ 512
 
+char** files;
+int nf;
+
 void use(char * name) {
     printf("\
 use: %s [-abdhiptvV] [regex1 regex2 ... regexn]     \n\
@@ -196,7 +199,7 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
     return 0;
 }
 
-int listfiles(char** files, int nf, int fmax, int pad ) {
+int listfiles(int fmax, int pad, int srt ) {
     int i, j, ncol, nrow, scol;
     struct winsize ws;
     ioctl(1, TIOCGWINSZ, &ws);
@@ -235,7 +238,7 @@ int listfiles(char** files, int nf, int fmax, int pad ) {
     return 0;
 }
 
-int pickfile(char** toks, int * nt, char** files, int nf, int fmax, char* cmd) {
+int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
     /* pick a file from a list of 'em */
     int i;
     static char buff[NAME_MAX+ 1] = "";
@@ -245,7 +248,7 @@ int pickfile(char** toks, int * nt, char** files, int nf, int fmax, char* cmd) {
     prompt = malloc((i+3) * sizeof(char));
     sprintf(prompt, "%*s: ", i, "");
 
-    listfiles(files, nf, fmax, i);
+    listfiles(fmax, i, srt);
 
     #ifdef NO_READLINE
         printf("%s", prompt);
@@ -394,7 +397,7 @@ int main(int argc, char *argv[]) {
         toks[nt] = (char *)malloc(strlen(files[0]) + 1 * sizeof(char));
         strcpy(toks[nt++], files[0]);
         toks[nt++] = NULL;
-    } else if( pickfile(toks, &nt, files, nf, fmax, cmd) ) return 0;
+    } else if( pickfile(toks, &nt, fmax, cmd, srt) ) return 0;
 
     if( test ) {
         printf("[ ");
