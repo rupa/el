@@ -50,12 +50,12 @@
 #define NUM_FILENAMES 1000
 #define MAX_READ 512
 
-char** files;
-int nf;
+static char** files;
+static int nf;
 
 void use(char * name) {
     printf("\
-use: %s [-abdhiptvV] [regex1 regex2 ... regexn]     \n\
+use: %s [-abdhiptvV] [regex1 regex2 ... regexn]    \n\
         -a show hidden files                       \n\
         -b show binary files                       \n\
         -d show directories                        \n\
@@ -82,8 +82,7 @@ char* my_generator(const char* text, int state) {
         len = strlen(text);
         idx = 0;
     }
-    while( (name = files[idx]) ) {
-        if( idx++ > nf ) break;
+    while( idx < nf && (name = files[idx++]) ) {
         if( strncmp(name, text, len) == 0 ) return( dupstr(name) );
     }
     return((char *)NULL);
