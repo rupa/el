@@ -66,6 +66,40 @@ use: %s [-abdhiptvV] [regex1 regex2 ... regexn]     \n\
         -V some info\n", name);
 }
 
+#ifndef NO_READLINE
+/* custom readline completion */
+char * dupstr (char* s) {
+  char *r;
+  r = (char*)malloc((strlen (s) + 1));
+  strcpy(r, s);
+  return(r);
+}
+
+char* my_generator(const char* text, int state) {
+    static int idx, len;
+    char *name;
+    if( !state ) {
+        len = strlen(text);
+        idx = 0;
+    }
+    while( (name = files[idx]) ) {
+        if( idx++ > nf ) break;
+        if( strncmp(name, text, len) == 0 ) return( dupstr(name) );
+    }
+    return((char *)NULL);
+}
+
+static char** my_completion( const char * text , int start,  int end) {
+    char **matches;
+    matches = (char **)NULL;
+    if( start == 0 ) {
+        matches = rl_completion_matches((char*)text, &my_generator);
+    } else rl_bind_key('\t',rl_abort);
+    return( matches );
+    end = 0;
+}
+#endif
+
 int lastedited(char *cmd, int test ) {
     /* vi only */
     if( test ) {
@@ -255,6 +289,7 @@ int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
         fgets(buff, sizeof(buff) - 1, stdin);
         buff[strlen(buff) - 1] = '\0';
     #else
+        rl_attempted_completion_function = my_completion;
         strncpy(buff, readline(prompt), sizeof(buff) - 1);
         buff[sizeof(buff) - 1] = '\0';
     #endif
