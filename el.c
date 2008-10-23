@@ -138,26 +138,26 @@ int isbin(char *filename) {
     return bin;
 }  
 
-int itofl(char *tok, char** toks, int *nt, char** flst, int nf) {
+int itofl(char *tok, char** toks, int *nt) {
     long n;
     char *end_ptr;
     n = strtol(tok, &end_ptr, 10);
     if( n > 0 && n <= nf && '\0' == *end_ptr ) {
         /* substitute from list */
-        toks[*nt] = (char *)malloc(strlen(flst[n - 1]) + 1 * sizeof(char));
-        strcpy(toks[*nt], flst[n - 1]);
+        toks[*nt] = (char *)malloc(strlen(files[n - 1]) + 1 * sizeof(char));
+        strcpy(toks[*nt], files[n - 1]);
     } else {
         /* leave alone */
-        toks[*nt] = (char *)malloc(strlen(tok)+1 * sizeof(char));
+        toks[*nt] = (char *)malloc(strlen(tok) + 1 * sizeof(char));
         strcpy(toks[*nt], tok);
     } 
     (*nt)++;
     return 0;
 }
 
-int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
+int parse(char* str, char** toks, int *nt, char* cmd) {
     /* split into tokens, account for ", deal with special ! commands,
-     * replace token with flst[token] if it exists, return a list of strings
+     * replace token with files[token] if it exists, return a list of strings
      * suitable for exec.
      */
     int i, j, quoted;
@@ -191,11 +191,11 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
         if( quoted ) {
             if( !(*nt) ) {
                 /* insert default: cmd */
-                toks[*nt] = (char *)malloc(sizeof(cmd) * sizeof(char));
+                toks[*nt] = (char *)malloc(strlen(cmd) + 1 * sizeof(char));
                 strcpy(toks[*nt], cmd);
                 (*nt)++;
             }
-            toks[*nt] = (char *)malloc(strlen(tmp[j])+1 * sizeof(char));
+            toks[*nt] = (char *)malloc(strlen(tmp[j]) + 1 * sizeof(char));
             strcpy(toks[*nt], tmp[j]);
             (*nt)++;
             quoted = 0;
@@ -208,20 +208,20 @@ int parse(char* str, char** toks, int *nt, char** flst, int nf, char* cmd) {
                         free(tmp); 
                         return 1;
                     }
-                    itofl(result, toks, nt, flst, nf);
+                    itofl(result, toks, nt);
                 } else if( !strncmp(result, "!", 1) ) {
-                    itofl(result+1, toks, nt, flst, nf);
+                    itofl(result + 1, toks, nt);
                 } else {
                     /* insert default: cmd */
-                    toks[*nt] = (char *)malloc(sizeof(cmd) * sizeof(char));
+                    toks[*nt] = (char *)malloc(strlen(cmd) + 1 * sizeof(char));
                     strcpy(toks[*nt], cmd);
                     (*nt)++;
-                    itofl(result, toks, nt, flst, nf);
+                    itofl(result, toks, nt);
                 }
                 result = strtok(NULL, " \t");
             }
             while( result != NULL ) {
-                itofl(result, toks, nt, flst, nf);
+                itofl(result, toks, nt);
                 result = strtok(NULL, " \t");
             }
             quoted = 1;
@@ -274,7 +274,7 @@ int listfiles(int fmax, int pad, int srt ) {
 int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
     /* pick a file from a list of 'em */
     int i;
-    static char buff[NAME_MAX+ 1] = "";
+    static char buff[NAME_MAX + 1] = "";
     char *prompt;
 
     i = magnitude(nf);
@@ -295,7 +295,7 @@ int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
 
     free(prompt);
     if( !strcmp(buff, "") ) return 1;
-    if( parse(buff, toks, nt, files, nf, cmd) ) return 1; 
+    if( parse(buff, toks, nt, cmd) ) return 1; 
 
     return 0;
 }
@@ -431,13 +431,17 @@ int main(int argc, char *argv[]) {
         toks[nt] = (char *)malloc(strlen(files[0]) + 1 * sizeof(char));
         strcpy(toks[nt++], files[0]);
         toks[nt++] = NULL;
-    } else if( pickfile(toks, &nt, fmax, cmd, srt) ) return 0;
+    } else if( pickfile(toks, &nt, fmax, cmd, srt) ) {
+        free(toks);
+        return 0;
+    }
 
     if( test ) {
         printf("[ ");
         for( i=0; i<nt; i++ ) printf("\"%s\", ", toks[i]);
         printf("]\n");
-    } else return execvp(toks[0], toks);
+        free(toks);
+    } else execvp(toks[0], toks);
 
     return 0;
 }
