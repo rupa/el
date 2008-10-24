@@ -1,5 +1,5 @@
 /*
- * el: fuzzy wrapper for $EDITOR
+ * el: mnemonic wrapper for $EDITOR
  * by rupa@lrrr.us 2008
  *
  * COMPILE:
@@ -108,6 +108,10 @@ static char** my_completion( const char * text , int start,  int end) {
 
 int lastedited(char *cmd, int test ) {
     /* vi only */
+/*
+((!strncmp(cmd, "vi", strlen(cmd))) ||
+                    (!strncmp(cmd, "gvim", strlen(cmd)))) &&
+*/
     if( test ) {
        printf("[ \"%s\", \"-c\", \"normal '0\", \"(null)\", ]\n", cmd);
     } else execlp(cmd, cmd, "-c", "normal '0", NULL);
@@ -352,19 +356,17 @@ char** getfiles(int all, int bin, int dirs, int v, regex_t* re, int nr, int* nf,
 }
 
 int main(int argc, char *argv[]) {
-    int all, bin, dirs, fmax, icas, inv, srt, test, i, nr, nt, r;
+    int all, bin, dirs, icas, inv, srt, test, fmax, i, nr, nt, r;
     char *cmd;
     char err[NAME_MAX];
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
     regex_t* re;
     struct stat statbuf;
 
-    cmd = getenv("EDITOR");
-    if( cmd == NULL ) cmd = "vi";
-
+    cmd = NULL;
     all = bin = dirs = icas = inv = srt = test = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abdhitvVx")) != -1) {
+    while ((i = getopt(argc, argv, "abdghitvVx")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
@@ -374,6 +376,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'd':
                 dirs = 1;
+                break;
+            case 'g':
+                cmd = getenv("VISUAL");
                 break;
             case 'h':
                 use(argv[0]);
@@ -400,29 +405,28 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if( cmd == NULL ) cmd = getenv("EDITOR");
+    if( cmd == NULL ) cmd = "vi";
+
     re  = (regex_t*)malloc((argc - optind) * sizeof(regex_t));
     nr = 0;
     if( argc - optind ) {
         int flags = REG_EXTENDED | REG_NOSUB;
         if( icas ) flags = flags | REG_ICASE;
-        icas = 0;
-        /* first non option arg is a directory */
+        /* first non option arg might be a directory */
         if( (argv[optind][strlen(argv[optind])-1] == '/') && 
             (stat(argv[optind], &statbuf) != -1) &&
             (S_ISDIR(statbuf.st_mode)) ) {
             if( chdir(argv[optind++]) ) {
                 printf("Couldn't cd to %s\n", argv[optind-1]);
             }
+        /* reopen last file */
+        } else if( !strcmp(argv[optind], ".") ) {
+            lastedited(cmd, test);
+            return 0;
         }
         for( i=optind; i<argc; i++ ) {
-            if( !strcmp(argv[i], "/") && !strncmp(cmd, "vi", 2) ) {
-                /* reopen last file */
-                lastedited(cmd, test);
-                return 0;
-            } else if( argv[i][0] == '/' ) {
-                /* set numbered file */
-                if( atoi(argv[i]+1) ) icas = atoi(argv[i]+1);
-            } else if( (r = regcomp(&re[nr], argv[i], flags)) ) {
+            if( (r = regcomp(&re[nr], argv[i], flags)) ) {
                 regerror(r, &re[nr], err, 80 );
                 printf("%s\n", err);
             } else nr++;
@@ -433,11 +437,6 @@ int main(int argc, char *argv[]) {
     free(re);
     qsort(files, nf, sizeof(char *), compare);
 
-    if( icas && icas <= nf ) {
-        /* open numbered file */
-        nf = 1;
-        files[0] = files[icas - 1];
-    }
     if( nf == 1 ) {
         /* single match */
         nt = 0;
