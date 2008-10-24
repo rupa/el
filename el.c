@@ -54,7 +54,7 @@
 #include <readline/readline.h>
 #endif
 
-#define NUM_FILENAMES 1000
+#define NUM_FILENAMES 2000
 #define MAX_READ 512
 
 static char** files;
@@ -109,10 +109,6 @@ static char** my_completion( const char * text , int start,  int end) {
 
 int lastedited(char *cmd, int test ) {
     /* vi only */
-/*
-((!strncmp(cmd, "vi", strlen(cmd))) ||
-                    (!strncmp(cmd, "gvim", strlen(cmd)))) &&
-*/
     if( test ) {
        printf("[ \"%s\", \"-c\", \"normal '0\", \"(null)\", ]\n", cmd);
     } else execlp(cmd, cmd, "-c", "normal '0", NULL);
@@ -135,7 +131,7 @@ int isbin(char *filename) {
     int ch, bin;
     float hi, tot;
     FILE *file;
-    file = fopen(filename, "r");
+    file = fopen(filename, "rb");
     if( file == 0 ) return -1;
     tot = hi = bin = 0;
     while( (ch = fgetc(file) ) != EOF && (++tot < MAX_READ) ) {
@@ -277,7 +273,7 @@ int listfiles(int fmax, int pad, int srt ) {
     }
 
     if( nf >= NUM_FILENAMES ) {
-        printf("\n* limit %d reached. *\n", NUM_FILENAMES);
+        fprintf(stderr, "\n* limit %d reached. *\n", NUM_FILENAMES);
     }
 
     return 0;
@@ -337,6 +333,7 @@ int filt(char *file, regex_t* re, int nr, int all, int bin, int dirs, int inv) {
 }
 
 char ** locfiles(char* loc, int all, int bin, int dirs, int v, regex_t* re, int nr, int *nf, int* fmax) {
+    /* filtered list of files from locate */
     FILE* p;
     char ln[NAME_MAX + 1];
     char** files = (char**)malloc(sizeof(char*) * NUM_FILENAMES);
@@ -355,7 +352,7 @@ char ** locfiles(char* loc, int all, int bin, int dirs, int v, regex_t* re, int 
 }
 
 char** dirfiles(int all, int bin, int dirs, int inv, regex_t* re, int nr, int* nf, int* fmax) {
-    /* return a list of files */
+    /* filtered list of files from a directory */
     DIR *d;
     struct dirent *dir;
     char** files = (char**)malloc(sizeof(char*) * NUM_FILENAMES);
@@ -439,22 +436,22 @@ int main(int argc, char* argv[]) {
     if( argc - optind ) {
         int flags = REG_EXTENDED | REG_NOSUB;
         if( icas ) flags = flags | REG_ICASE;
-        /* first non option arg might be a directory */
         if( (argv[optind][strlen(argv[optind])-1] == '/') && 
+            /* first non option arg might be a directory */
             (stat(argv[optind], &statbuf) != -1) &&
             (S_ISDIR(statbuf.st_mode)) ) {
             if( chdir(argv[optind++]) ) {
-                printf("Couldn't cd to %s\n", argv[optind-1]);
+                fprintf(stderr, "Couldn't cd to %s\n", argv[optind-1]);
             }
-        /* reopen last file */
         } else if( !strcmp(argv[optind], ".") ) {
+            /* reopen last file */
             lastedited(cmd, test);
             return 0;
         }
         for( i=optind; i<argc; i++ ) {
             if( (r = regcomp(&re[nr], argv[i], flags)) ) {
                 regerror(r, &re[nr], err, 80 );
-                printf("%s\n", err);
+                fprintf(stderr, "%s\n", err);
             } else nr++;
         }
     }
