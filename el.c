@@ -1,11 +1,12 @@
 /*
  * el: fuzzy wrapper for $EDITOR
+ * by rupa@lrrr.us 2008
  *
- * compile:
+ * COMPILE:
  *     cc -Wall -lreadline -lncurses el.c
  *     cc -Wall -DNO_READLINE el.c
  *
- * use:
+ * USE:
  *     el [-abdhitv] [regex1 regex2 ... regexn]
  *         -a show hidden files
  *         -b show binary files
@@ -14,15 +15,21 @@
  *         -i matching is case insensitive
  *         -t test - print cmd that would be run
  *         -v only show files that don't match regexes
+ *         -V some info
  *
- * If only one file matches, opens $EDITOR on that file, else displays a list
- * and shows a prompt. Enter a list number to open that file. Other input is 
- * considered arguments to $EDITOR. If the first char entered at the prompt
- * is !, the entire line is passed to the shell as a command. List numbers are
- * always replaced by the corresponding file name before being passed to the
- * shell.
+ * DESCRIPTION:
+ *     If only one file matches, opens $EDITOR on that file, else displays a
+ * list and shows a prompt. Enter a list number to open that file. Other input
+ * is considered arguments to $EDITOR.
+ *     If the first nonoption argument end in / and is a valid directory, list
+ * files there instead of $PWD.
+ *     If the first char entered at the prompt is !, the entire line is passed
+ * to the shell as a command. List numbers are replaced by the corresponding
+ * file name before being passed to the shell. An attempt is made to handle
+ * escapes and double quoting correctly. If compiled with readline support, 
+ * tab completion on the prompt list works.
  *
- * Example:
+ * EXAMPLE:
  *     $ el
  *     1: Makefile
  *     2: README
@@ -350,6 +357,7 @@ int main(int argc, char *argv[]) {
     char err[NAME_MAX];
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
     regex_t* re;
+    struct stat statbuf;
 
     cmd = getenv("EDITOR");
     if( cmd == NULL ) cmd = "vi";
@@ -398,7 +406,14 @@ int main(int argc, char *argv[]) {
         int flags = REG_EXTENDED | REG_NOSUB;
         if( icas ) flags = flags | REG_ICASE;
         icas = 0;
-        r = 0;
+        /* first non option arg is a directory */
+        if( (argv[optind][strlen(argv[optind])-1] == '/') && 
+            (stat(argv[optind], &statbuf) != -1) &&
+            (S_ISDIR(statbuf.st_mode)) ) {
+            if( chdir(argv[optind++]) ) {
+                printf("Couldn't cd to %s\n", argv[optind-1]);
+            }
+        }
         for( i=optind; i<argc; i++ ) {
             if( !strcmp(argv[i], "/") && !strncmp(cmd, "vi", 2) ) {
                 /* reopen last file */
