@@ -62,14 +62,14 @@ static int nf;
 
 void use(char * name) {
     printf("\
-use: %s [-abdhiptvV] [regex1 regex2 ... regexn]    \n\
-        -a show hidden files                       \n\
-        -b show binary files                       \n\
-        -d show directories                        \n\
-        -h print this help message                 \n\
-        -i matching is case insensitive            \n\
-        -t test - print cmd that would be run      \n\
-        -v only show files that don't match regexes\n\
+use: %s [-abdhiptvV] [dir/] [regex1 regex2 ... regexn]\n\
+        -a show hidden files                          \n\
+        -b show binary files                          \n\
+        -d show directories                           \n\
+        -h print this help message                    \n\
+        -i matching is case insensitive               \n\
+        -t test - print cmd that would be run         \n\
+        -v only show files that don't match regexes   \n\
         -V some info\n", name);
 }
 
