@@ -107,12 +107,17 @@ static char** my_completion( const char * text , int start,  int end) {
 }
 #endif
 
-int lastedited(char *cmd, int test ) {
+int lastedited(char **argv, int argc, int optind, char *cmd, int test ) {
     /* vi only */
+    char fl[9 + sizeof(int)];
+    if( (argc - (++optind)) ) {
+        nf = atoi(argv[optind]) % 10;
+    } else nf = 0;
+    sprintf(fl, "normal '%d", nf);
     if( test ) {
-       printf("[ \"%s\", \"-c\", \"normal '0\", \"(null)\", ]\n", cmd);
-    } else execlp(cmd, cmd, "-c", "normal '0", NULL);
-    return 0;
+       printf("[ \"%s\", \"-c\", \"%s\", \"(null)\", ]\n", cmd, fl);
+    } else execlp(cmd, cmd, "-c", fl, NULL);
+    return 1;
 }
 
 int magnitude(int num) {
@@ -416,7 +421,7 @@ int main(int argc, char* argv[]) {
                 inv = 1;
                 break;
             case 'V':
-                printf("%s %s %s\n", __FILE__, __DATE__, __TIME__);
+                printf("%s compiled %s %s\n", __FILE__, __DATE__, __TIME__);
                 return 0;
             case 'x':
                 srt = 1;
@@ -443,13 +448,12 @@ int main(int argc, char* argv[]) {
             if( chdir(argv[optind++]) ) {
                 fprintf(stderr, "Couldn't cd to %s\n", argv[optind-1]);
             }
-        } else if( !strcmp(argv[optind], ".") ) {
+        } else if( !strcmp(argv[optind], ".") && lastedited(argv, argc, optind, cmd, test) ) {
             /* reopen last file */
-            lastedited(cmd, test);
             return 0;
         }
-        for( i=optind; i<argc; i++ ) {
-            if( (r = regcomp(&re[nr], argv[i], flags)) ) {
+        for( ; optind<argc; optind++ ) {
+            if( (r = regcomp(&re[nr], argv[optind], flags)) ) {
                 regerror(r, &re[nr], err, 80 );
                 fprintf(stderr, "%s\n", err);
             } else nr++;
