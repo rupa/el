@@ -379,7 +379,7 @@ char** dirfiles(int all, int bin, int dirs, int inv, regex_t* re, int nr, int* n
 }
 
 int main(int argc, char* argv[]) {
-    int all, bin, dirs, icas, inv, srt, test, fmax, i, nr, nt, r;
+    int all, bin, dirs, force, icas, inv, srt, test, fmax, i, nr, nt, r;
     char* cmd;
     char* loc = NULL;
    
@@ -389,9 +389,9 @@ int main(int argc, char* argv[]) {
     struct stat statbuf;
 
     cmd = NULL;
-    all = bin = dirs = icas = inv = srt = test = 0;
+    all = bin = dirs = force = icas = inv = srt = test = 0;
     opterr = 1;
-    while ((i = getopt(argc, argv, "abdghil:tvVx")) != -1) {
+    while ((i = getopt(argc, argv, "abdfghil:tvVx")) != -1) {
         switch (i) {
             case 'a':
                 all = 1;
@@ -401,6 +401,9 @@ int main(int argc, char* argv[]) {
                 break;
             case 'd':
                 dirs = 1;
+                break;
+            case 'f':
+                force = 1;
                 break;
             case 'g':
                 cmd = getenv("VISUAL");
@@ -470,7 +473,7 @@ int main(int argc, char* argv[]) {
     free(re);
     qsort(files, nf, sizeof(char *), compare);
 
-    if( nf == 1 ) {
+    if( !force && nf == 1 ) {
         /* single match */
         nt = 0;
         toks[nt] = (char *)malloc(strlen(cmd) + 1 * sizeof(char));
