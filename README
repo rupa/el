@@ -1,0 +1,14 @@
+to fix "ld: unrecognized option '--hash-style=gnu'"
+put this in front of real ld in $PATH:
+
+# #!/bin/sh
+# 
+# LD=/usr/bin/ld
+# 
+# ARGS=""
+# for a in $@; do
+#  [ x"${a:0:12}" != x"--hash-style" ] && ARGS="$ARGS $a"
+# fi
+# done
+# 
+# exec $LD $ARGS

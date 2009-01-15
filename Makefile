@@ -1,6 +1,6 @@
 CC = cc
 CFLAGS = -Wall -Wextra -pedantic
-DEFINES = 
+DEFINES =
 LDFLAGS = -lreadline -lncurses
 
 all: el
