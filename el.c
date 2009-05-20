@@ -481,7 +481,7 @@ int main(int argc, char* argv[]) {
         toks[nt] = (char *)malloc(strlen(files[0]) + 1 * sizeof(char));
         strcpy(toks[nt++], files[0]);
         toks[nt++] = NULL;
-    } else if( pickfile(toks, &nt, fmax, cmd, srt) ) {
+    } else if( !nf || pickfile(toks, &nt, fmax, cmd, srt) ) {
         free(toks);
         return 0;
     }
