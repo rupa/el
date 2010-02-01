@@ -149,7 +149,7 @@ int isbin(char *filename) {
     if( tot && !bin && (hi / tot) > .30 ) bin = 1;
     fclose(file);
     return bin;
-}  
+}
 
 int itofl(char *tok, char** toks, int *nt) {
     long n;
@@ -163,7 +163,7 @@ int itofl(char *tok, char** toks, int *nt) {
         /* leave alone */
         toks[*nt] = (char *)malloc(strlen(tok) + 1 * sizeof(char));
         strcpy(toks[*nt], tok);
-    } 
+    }
     (*nt)++;
     return 0;
 }
@@ -177,7 +177,7 @@ int parse(char* str, char** toks, int *nt, char* cmd) {
     char *result = NULL;
     char** tmp = (char**)malloc(sizeof(char*) * sizeof(str));
     char *tmp2;
-     
+
     i = j = *nt = 0;
     quoted = !strncmp(str,"\"", 1);
 
@@ -200,7 +200,7 @@ int parse(char* str, char** toks, int *nt, char* cmd) {
         i++;
     }
     free(tmp2);
-    for( j=0; j<i; j++ ) { 
+    for( j=0; j<i; j++ ) {
         if( quoted ) {
             if( !(*nt) ) {
                 /* insert default: cmd */
@@ -218,7 +218,7 @@ int parse(char* str, char** toks, int *nt, char* cmd) {
                 if( !strcmp(result, "!" ) ) {
                     result = strtok(NULL, " \t");
                     if( result == NULL ) {
-                        free(tmp); 
+                        free(tmp);
                         return 1;
                     }
                     itofl(result, toks, nt);
@@ -308,7 +308,7 @@ int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
 
     free(prompt);
     if( !strcmp(buff, "") ) return 1;
-    if( parse(buff, toks, nt, cmd) ) return 1; 
+    if( parse(buff, toks, nt, cmd) ) return 1;
 
     return 0;
 }
@@ -316,7 +316,7 @@ int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
 int filt(char *file, regex_t* re, int nr, int all, int bin, int dirs, int inv) {
     struct stat statbuf;
     int i, nok; 
-    if( stat(file, &statbuf) == -1 ) return 1; 
+    if( stat(file, &statbuf) == -1 ) return 1;
     if( !strcmp(file, ".") ) return 1;
     if( !strcmp(file, "..") ) return 1;
     if( !all && file[0] == '.' ) return 1;
@@ -382,7 +382,7 @@ int main(int argc, char* argv[]) {
     int all, bin, dirs, force, icas, inv, srt, test, fmax, i, nr, nt, r;
     char* cmd;
     char* loc = NULL;
-   
+
     char err[NAME_MAX];
     char** toks = (char**)malloc(sizeof(char*) * NAME_MAX + 1);
     regex_t* re;
