@@ -101,7 +101,7 @@ static char** my_completion( const char * text , int start,  int end) {
     matches = (char **)NULL;
     if( start == 0 ) {
         matches = rl_completion_matches((char*)text, &my_generator);
-    } else rl_bind_key('\t',rl_abort);
+    } else rl_bind_key('\t',rl_insert);
     return( matches );
     end = 0;
 }
