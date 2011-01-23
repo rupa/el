@@ -467,7 +467,12 @@ int main(int argc, char* argv[]) {
         files = dirfiles(all, bin, dirs, inv, re, nr, &nf, &fmax);
     } else {
         char* locs = (char*)malloc(strlen(loc) + 16 * sizeof(char));
-        sprintf(locs, "locate --regex %s", loc);
+        /* --regex not present on OSX */
+        #ifdef __APPLE__
+            sprintf(locs, "locate %s", loc);
+        #else
+            sprintf(locs, "locate --regex %s", loc);
+        #endif
         files = locfiles(locs, all, bin, dirs, inv, re, nr, &nf, &fmax);
     }
     free(re);
