@@ -9,7 +9,7 @@ el: el.c
 	${CC} ${CFLAGS} ${DEFINES} ${LDFLAGS} -o el $<
 
 noreadline: el.c
-	${CC} ${CFLAGS} -DNO_READLINE -o el $<
+	${CC} ${CFLAGS} ${DEFINES} -DNO_READLINE -o el $<
 
 .PHONY: clean
 
