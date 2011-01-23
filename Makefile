@@ -11,5 +11,7 @@ el: el.c
 noreadline: el.c
 	${CC} ${CFLAGS} -DNO_READLINE -o el $<
 
+.PHONY: clean
+
 clean:
 	-rm el
