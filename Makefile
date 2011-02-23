@@ -12,7 +12,7 @@ noreadline: el.c
 	${CC} ${CFLAGS} ${DEFINES} -DNO_READLINE -o el $<
 
 man:
-	help2man -N -n "mnemonic wrapper for EDITOR" --help-option="-h" --version-option="-V" -o el.1 el
+	help2man -N -n "mnemonic wrapper for EDITOR" --help-option="-h" --version-option="-V" -o el.1 ./el
 
 
 .PHONY: clean
