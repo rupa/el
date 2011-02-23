@@ -424,7 +424,7 @@ int main(int argc, char* argv[]) {
                 inv = 1;
                 break;
             case 'V':
-                printf("%s compiled %s %s\n", __FILE__, __DATE__, __TIME__);
+                printf("el compiled %s %s\n", __DATE__, __TIME__);
                 return 0;
             case 'x':
                 srt = 1;
