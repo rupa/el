@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -pedantic
 DEFINES =
 LDFLAGS = -lreadline -lncurses
 
-all: el
+all: el man
 
 el: el.c
 	${CC} ${CFLAGS} ${DEFINES} ${LDFLAGS} -o el $<
@@ -14,8 +14,7 @@ noreadline: el.c
 man:
 	help2man -N -n "mnemonic wrapper for EDITOR" --help-option="-h" --version-option="-V" -o el.1 ./el
 
-
 .PHONY: clean
 
 clean:
-	-rm el
+	-rm el el.1
