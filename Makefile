@@ -6,7 +6,7 @@ SRCDIR = .
 PREFIX = /usr/local
 EXEC_PREFIX = ${PREFIX}
 
-BINDIR = ${EXEC_PREFIX)/bin
+BINDIR = ${EXEC_PREFIX}/bin
 MANDIR = ${PREFIX}/man
 
 all: el el.1
