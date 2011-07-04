@@ -4,6 +4,10 @@ COMPILE:
     cc -Wall -lreadline -lncurses -DHAVE_LIBREADLINE el.c
     cc -Wall el.c
 
+    There is also a Makefile provided:
+    'make' to compile with readline support.
+    'make noreadline' to compile without it.
+
 USE:
     el [-abdhitv] [regex1 regex2 ... regexn]
         -a show hidden files
