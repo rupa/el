@@ -50,7 +50,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
-#ifndef NO_READLINE
+#ifdef HAVE_LIBREADLINE
 #include <readline/readline.h>
 #endif
 
@@ -74,7 +74,7 @@ void use(char * name) {
         -V some info\n");
 }
 
-#ifndef NO_READLINE
+#ifdef HAVE_LIBREADLINE
 /* custom readline completion */
 char * dupstr (char* s) {
   char *r;
@@ -96,14 +96,14 @@ char* my_generator(const char* text, int state) {
     return((char *)NULL);
 }
 
-static char** my_completion( const char * text , int start,  int end) {
+static char** my_completion(const char * text, int start, int end) {
     char **matches;
+    (void)end;
     matches = (char **)NULL;
     if( start == 0 ) {
         matches = rl_completion_matches((char*)text, &my_generator);
     } else rl_bind_key('\t',rl_insert);
     return( matches );
-    end = 0;
 }
 #endif
 
@@ -296,14 +296,14 @@ int pickfile(char** toks, int * nt, int fmax, char* cmd, int srt) {
 
     listfiles(fmax, i, srt);
 
-    #ifdef NO_READLINE
-        printf("%s", prompt);
-        fgets(buff, sizeof(buff) - 1, stdin);
-        buff[strlen(buff) - 1] = '\0';
-    #else
+    #ifdef HAVE_LIBREADLINE
         rl_attempted_completion_function = my_completion;
         strncpy(buff, readline(prompt), sizeof(buff) - 1);
         buff[sizeof(buff) - 1] = '\0';
+    #else
+        printf("%s", prompt);
+        fgets(buff, sizeof(buff) - 1, stdin);
+        buff[strlen(buff) - 1] = '\0';
     #endif
 
     free(prompt);
