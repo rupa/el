@@ -23,7 +23,7 @@ install: el el.1
 	mkdir -p ${BINDIR}
 	mkdir -p ${MANDIR}/man1
 	mv el ${BINDIR}
-	mv el.1 ${MANDIR}/man1
+	cp el.1 ${MANDIR}/man1
 .PHONY: install
 
 uninstall:
