@@ -35,7 +35,7 @@ clean:
 	-rm -f el
 .PHONY: clean
 
-el.1: el
+el.1: | el
 	help2man -N -n "mnemonic wrapper for EDITOR" -h "-h" -v "-V" -o $@ ./$<
 
 maintainer-clean: clean
