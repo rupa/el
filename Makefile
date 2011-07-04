@@ -19,7 +19,7 @@ noreadline: el.c
 	${CC} ${CFLAGS} ${DEFINES} -o el $<
 .PHONY:
 
-install: el el.1
+install: el | el.1
 	mkdir -p ${BINDIR}
 	mkdir -p ${MANDIR}/man1
 	mv el ${BINDIR}
