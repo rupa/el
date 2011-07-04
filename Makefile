@@ -9,7 +9,7 @@ EXEC_PREFIX = ${PREFIX}
 BINDIR = ${EXEC_PREFIX}/bin
 MANDIR = ${PREFIX}/man
 
-all: el el.1
+all: el | el.1
 .PHONY: all
 
 el: el.c
