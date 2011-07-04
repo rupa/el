@@ -3,8 +3,8 @@
  * by rupa@lrrr.us 2008
  *
  * COMPILE:
- *     cc -Wall -lreadline -lncurses el.c
- *     cc -Wall -DNO_READLINE el.c
+ *     cc -Wall -lreadline -lncurses -DHAVE_LIBREADLINE el.c
+ *     cc -Wall el.c
  *
  * USE:
  *     el [-abdhitv] [regex1 regex2 ... regexn]
