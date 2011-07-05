@@ -1,10 +1,11 @@
+SHELL = /bin/sh
+SRCDIR = .
+PREFIX = /usr/local
+EXEC_PREFIX = ${PREFIX}
 CC = cc
 CFLAGS = -Wall -Wextra -pedantic
 DEFINES =
 LDFLAGS = -lreadline -lncurses
-SRCDIR = .
-PREFIX = /usr/local
-EXEC_PREFIX = ${PREFIX}
 
 BINDIR = ${EXEC_PREFIX}/bin
 MANDIR = ${PREFIX}/man
