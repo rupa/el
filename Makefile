@@ -1,44 +1,49 @@
 SHELL = /bin/sh
-SRCDIR = .
-PREFIX = /usr/local
-EXEC_PREFIX = ${PREFIX}
+prefix = /usr/local
+exec_prefix = ${prefix}
 CC = cc
 CFLAGS = -Wall -Wextra -pedantic
-DEFINES =
+DEFINES = -DHAVE_LIBREADLINE
 LDFLAGS = -lreadline -lncurses
 
-BINDIR = ${EXEC_PREFIX}/bin
-MANDIR = ${PREFIX}/man
+bindir = ${exec_prefix}/bin
+mandir = ${prefix}/man
 
 all: el | el.1
 .PHONY: all
 
 el: el.c
-	${CC} ${CFLAGS} ${DEFINES} ${LDFLAGS} -DHAVE_LIBREADLINE -o $@ $<
+	${CC} ${CFLAGS} ${DEFINES} ${LDFLAGS} -o $@ $<
 
 noreadline: el.c
-	${CC} ${CFLAGS} ${DEFINES} -o el $<
+	${CC} ${CFLAGS} -o el $<
 .PHONY:
 
 install: el | el.1
-	mkdir -p ${BINDIR}
-	mkdir -p ${MANDIR}/man1
-	mv el ${BINDIR}
-	cp el.1 ${MANDIR}/man1
+	@echo installing executable file to ${bindir}
+	@mkdir -p ${bindir}
+	@mv el ${bindir}
+	@echo installing man page to ${mandir}/man1
+	@mkdir -p ${mandir}/man1
+	@cp el.1 ${mandir}/man1
 .PHONY: install
 
 uninstall:
-	rm -f ${BINDIR}/el
-	rm -f ${MANDIR}/man1/el.1
+	@echo removing executable file from ${bindir}
+	@rm -f ${bindir}/el
+	@echo removing man page from ${mandir}/man1
+	@rm -f ${mandir}/man1/el.1
 .PHONY: uninstall
 
 clean:
-	-rm -f el
+	@echo cleaning
+	@-rm -f el
 .PHONY: clean
 
 el.1: | el
 	help2man -N -n "mnemonic wrapper for EDITOR" -h "-h" -v "-V" -o $@ ./$<
 
 maintainer-clean: clean
-	-rm -f el.1
+	@ echo cleaning man page
+	@-rm -f el.1
 .PHONY: maintainer-clean
