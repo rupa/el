@@ -17,7 +17,7 @@ el: el.c
 
 noreadline: el.c
 	${CC} ${CFLAGS} -o el $<
-.PHONY:
+.PHONY: noreadline
 
 install: el | el.1
 	@echo installing executable file to ${bindir}
